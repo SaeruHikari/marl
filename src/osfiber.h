@@ -28,6 +28,8 @@
 
 #if defined(_WIN32)
 #include "osfiber_windows.h"
+#elif defined(MARL_TARGET_PLATFORM_PLAYSTATION)
+#include "osfiber_prospero.h"
 #elif defined(MARL_FIBERS_USE_UCONTEXT)
 #include "osfiber_ucontext.h"
 #else

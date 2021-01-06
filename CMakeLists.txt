@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.0)
 include(cmake/parse_version.cmake)
 parse_version("${CMAKE_CURRENT_SOURCE_DIR}/CHANGES.md" MARL)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 project(Marl
     VERSION   "${MARL_VERSION_MAJOR}.${MARL_VERSION_MINOR}.${MARL_VERSION_PATCH}"
@@ -153,26 +153,34 @@ set(MARL_LIST
     ${MARL_SRC_DIR}/trace.cpp
 )
 if(NOT MSVC)
-    list(APPEND MARL_LIST
-        ${MARL_SRC_DIR}/osfiber_aarch64.c
-        ${MARL_SRC_DIR}/osfiber_arm.c
-        ${MARL_SRC_DIR}/osfiber_asm_aarch64.S
-        ${MARL_SRC_DIR}/osfiber_asm_arm.S
-        ${MARL_SRC_DIR}/osfiber_asm_mips64.S
-        ${MARL_SRC_DIR}/osfiber_asm_ppc64.S
-        ${MARL_SRC_DIR}/osfiber_asm_x64.S
-        ${MARL_SRC_DIR}/osfiber_asm_x86.S
-        ${MARL_SRC_DIR}/osfiber_mips64.c
-        ${MARL_SRC_DIR}/osfiber_ppc64.c
-        ${MARL_SRC_DIR}/osfiber_x64.c
-        ${MARL_SRC_DIR}/osfiber_x86.c
-    )
+    if(${MARL_TARGET_PLATFORM_PLAYSTATION})
+        message(STATUS "PlayStation")
+        
+    else()
+        list(APPEND MARL_LIST
+            ${MARL_SRC_DIR}/osfiber_aarch64.c
+            ${MARL_SRC_DIR}/osfiber_arm.c
+            ${MARL_SRC_DIR}/osfiber_asm_aarch64.S
+            ${MARL_SRC_DIR}/osfiber_asm_arm.S
+            ${MARL_SRC_DIR}/osfiber_asm_mips64.S
+            ${MARL_SRC_DIR}/osfiber_asm_ppc64.S
+            ${MARL_SRC_DIR}/osfiber_asm_x64.S
+            ${MARL_SRC_DIR}/osfiber_asm_x86.S
+            ${MARL_SRC_DIR}/osfiber_mips64.c
+            ${MARL_SRC_DIR}/osfiber_ppc64.c
+            ${MARL_SRC_DIR}/osfiber_x64.c
+            ${MARL_SRC_DIR}/osfiber_x86.c
+        )
+    endif(${MARL_TARGET_PLATFORM_PLAYSTATION})
 endif(NOT MSVC)
 
 ###########################################################
 # OS libraries
 ###########################################################
-find_package(Threads REQUIRED)
+if(${MARL_TARGET_PLATFORM_PLAYSTATION})
+else()    
+    find_package(Threads REQUIRED)
+endif(${MARL_TARGET_PLATFORM_PLAYSTATION})
 
 ###########################################################
 # Functions
@@ -259,7 +267,12 @@ set_target_properties(marl PROPERTIES
 
 marl_set_target_options(marl)
 
-target_link_libraries(marl PUBLIC Threads::Threads)
+if(${MARL_TARGET_PLATFORM_PLAYSTATION})
+    target_compile_definitions(marl PUBLIC MARL_TARGET_PLATFORM_PLAYSTATION)
+    target_link_libraries(marl PUBLIC libScePosix_stub_weak.a libSceFiber_stub_weak.a libSceSysmodule_stub_weak.a)
+else()    
+    target_link_libraries(marl PUBLIC Threads::Threads)
+endif(${MARL_TARGET_PLATFORM_PLAYSTATION})
 
 # install
 if(MARL_INSTALL)

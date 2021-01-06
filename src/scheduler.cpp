@@ -21,6 +21,12 @@
 #include "marl/thread.h"
 #include "marl/trace.h"
 
+#ifdef MARL_TARGET_PLATFORM_PLAYSTATION
+#include <kernel.h>
+#include <sce_fiber.h>
+#include <libsysmodule.h>
+#endif
+
 #if defined(_WIN32)
 #include <intrin.h>  // __nop()
 #endif
@@ -133,6 +139,12 @@ Scheduler::Scheduler(const Config& config)
     : cfg(setConfigDefaults(config)),
       workerThreads{},
       singleThreadedWorkers(config.allocator) {
+#ifdef MARL_TARGET_PLATFORM_PLAYSTATION
+  if (sceSysmoduleLoadModule(SCE_SYSMODULE_FIBER) != SCE_OK) 
+  {
+   
+  }
+#endif
   for (size_t i = 0; i < spinningWorkers.size(); i++) {
     spinningWorkers[i] = -1;
   }

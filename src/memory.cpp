@@ -19,7 +19,33 @@
 
 #include <cstring>
 
-#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
+#ifdef MARL_TARGET_PLATFORM_PLAYSTATION
+#include <sys/mman.h>
+#include <unistd.h>
+namespace {
+inline size_t pageSize() {
+  return SCE_KERNEL_PAGE_SIZE;
+}
+inline void* allocatePages(size_t count) {
+  auto mapping = malloc(count * pageSize());
+  MARL_ASSERT(mapping != MAP_FAILED, "Failed to allocate %d pages", int(count));
+  if (mapping == MAP_FAILED) {
+    mapping = nullptr;
+  }
+  return mapping;
+}
+inline void freePages(void* ptr, size_t count) {
+  free(ptr);
+  //(void)res;
+  //MARL_ASSERT(res == 0, "Failed to free %d pages at %p", int(count), ptr);
+}
+inline void protectPage(void* addr) {
+  auto res = mprotect(addr, pageSize(), PROT_NONE);
+  (void)res;
+  MARL_ASSERT(res == 0, "Failed to protect page at %p", addr);
+}
+}  // anonymous namespace
+#elif defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
 #include <sys/mman.h>
 #include <unistd.h>
 namespace {

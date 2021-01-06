@@ -36,6 +36,9 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <thread>
+#elif defined(MARL_TARGET_PLATFORM_PLAYSTATION)
+#include <kernel.h>
+#include <scetypes.h>
 #elif defined(__FreeBSD__)
 #include <pthread.h>
 #include <pthread_np.h>
@@ -158,11 +161,26 @@ Thread::Affinity Thread::Affinity::all(
       affinity.cores.emplace_back(std::move(core));
     }
   }
+#elif defined(MARL_TARGET_PLATFORM_PLAYSTATION)
+    auto thread = scePthreadSelf();
+    SceKernelCpumask cpuset = 0;
+    if (scePthreadGetaffinity(thread, &cpuset) == 0) {
+      for (int i = 0; i < SCE_KERNEL_CPUMASK_13CPU; i++) 
+      {
+        // cpuset |= 1 << affinity[i].pthread.index;
+        if (cpuset & (1 << i)) 
+        {
+          Core core;
+          core.pthread.index = static_cast<uint16_t>(i);
+          affinity.cores.emplace_back(std::move(core));
+        }
+      }
+    }
 #elif defined(__FreeBSD__)
-  auto thread = pthread_self();
-  cpuset_t cpuset;
-  CPU_ZERO(&cpuset);
-  if (pthread_getaffinity_np(thread, sizeof(cpuset_t), &cpuset) == 0) {
+    auto thread = pthread_self();
+    cpuset_t cpuset;
+    CPU_ZERO(&cpuset);
+    if (pthread_getaffinity_np(thread, sizeof(cpuset_t), &cpuset) == 0) {
     int count = CPU_COUNT(&cpuset);
     for (int i = 0; i < count; i++) {
       Core core;
@@ -383,6 +401,17 @@ class Thread::Impl {
     }
     auto thread = pthread_self();
     pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+#elif defined(MARL_TARGET_PLATFORM_PLAYSTATION)
+    SceKernelCpumask cpuset = 0;
+    for (size_t i = 0; i < count; i++) 
+    {
+      cpuset |= 1 << affinity[i].pthread.index;
+    }
+    auto thread = scePthreadSelf();
+    auto returnCode = scePthreadSetaffinity(thread, cpuset);
+    if (returnCode < 0) {
+      printf("scePthreadSetaffinity failed 0x%08x\n", returnCode);
+    }
 #elif defined(__FreeBSD__)
     cpuset_t cpuset;
     CPU_ZERO(&cpuset);
@@ -420,6 +449,8 @@ void Thread::setName(const char* fmt, ...) {
 
 #if defined(__APPLE__)
   pthread_setname_np(name);
+#elif defined(MARL_TARGET_PLATFORM_PLAYSTATION)
+  scePthreadRename(scePthreadSelf(), name);
 #elif defined(__FreeBSD__)
   pthread_set_name_np(pthread_self(), name);
 #elif !defined(__Fuchsia__)
@@ -430,7 +461,11 @@ void Thread::setName(const char* fmt, ...) {
 }
 
 unsigned int Thread::numLogicalCPUs() {
+#ifdef MARL_TARGET_PLATFORM_PLAYSTATION
+  return static_cast<unsigned int>(26); // !!!
+#else
   return static_cast<unsigned int>(sysconf(_SC_NPROCESSORS_ONLN));
+#endif
 }
 
 #endif  // OS
