@@ -308,7 +308,7 @@ Thread::Thread(Affinity&& affinity, Func&& func) {
   LPPROC_THREAD_ATTRIBUTE_LIST attributes =
       reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(buffer.data());
   CHECK_WIN32(InitializeProcThreadAttributeList(attributes, 1, 0, &size));
-  defer(DeleteProcThreadAttributeList(attributes));
+  task_defer(DeleteProcThreadAttributeList(attributes));
 
   GROUP_AFFINITY groupAffinity = {};
 

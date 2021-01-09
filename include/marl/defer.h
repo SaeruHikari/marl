@@ -37,7 +37,7 @@ namespace marl {
 //      printf("hello ");
 //  }
 //
-#define defer(x) \
+#define task_defer(x) \
   auto MARL_CONCAT(defer_, __LINE__) = marl::make_finally([&] { x; })
 
 }  // namespace marl
